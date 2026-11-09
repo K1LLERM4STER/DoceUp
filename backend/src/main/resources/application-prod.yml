@@ -1,0 +1,19 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            redirect-uri: ${GOOGLE_REDIRECT_URI}
+
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
+
+logging:
+  structured:
+    format:
+      console: logstash

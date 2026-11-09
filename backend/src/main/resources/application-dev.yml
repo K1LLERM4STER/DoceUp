@@ -1,0 +1,13 @@
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:5173/login/oauth2/code/google}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-doceup}
+      POSTGRES_USER: ${POSTGRES_USER:-doceup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - doceup-postgres:/var/lib/postgresql
+
+volumes:
+  doceup-postgres:
