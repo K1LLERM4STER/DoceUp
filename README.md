@@ -17,7 +17,7 @@ Requisitos: Java 21, Node.js 22, npm, PostgreSQL 18 ou Docker com Compose e um c
 
 1. Copie `.env.example` para `.env` e troque as senhas de exemplo. Para o banco do Compose, use a mesma senha em `POSTGRES_PASSWORD` e `DATABASE_PASSWORD`.
 2. Use `docker compose up -d db` na raiz, ou crie manualmente o banco e o usuário em um PostgreSQL local.
-3. No cliente OAuth, adicione **`http://localhost:5173/login/oauth2/code/google`** às URLs de redirecionamento autorizadas. Preencha `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no arquivo local. Use `localhost` também no navegador.
+3. No cliente OAuth, adicione **`http://localhost:5173/login/oauth2/code/google`** às URLs de redirecionamento autorizadas. Preencha `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `DOCEUP_EMAILS_AUTORIZADOS` no arquivo local. Informe os e-mails autorizados separados por vírgula. Use `localhost` também no navegador.
 4. Na raiz, inicie o back-end no PowerShell:
 
    ```powershell
@@ -55,6 +55,7 @@ A aplicação sobe com Flyway e valida o esquema. O perfil `dev` habilita o Open
 ## Segurança e testes
 
 - O Google identifica a conta por emissor e identificador estável. O DoceUp não armazena senhas.
+- O acesso exige e-mail verificado pelo Google que conste em `DOCEUP_EMAILS_AUTORIZADOS`. Lista vazia bloqueia o acesso. A autorização é conferida em cada requisição.
 - O servidor deriva o negócio da sessão. Consultas e alterações filtram pelo negócio para impedir acesso cruzado.
 - A sessão usa cookie HttpOnly, SameSite=Lax e Secure em produção. CSRF permanece ligado e o React usa o token entregue pela API.
 - Validação de DTOs e rejeição de campos extras impedem que valores inesperados sejam aplicados ao modelo. Erros da API usam ProblemDetail.

@@ -79,6 +79,7 @@ class FluxoDoceUpTest {
         }
         propriedades.add("spring.security.oauth2.client.registration.google.client-id", () -> "doceup-test");
         propriedades.add("spring.security.oauth2.client.registration.google.client-secret", () -> "only-test");
+        propriedades.add("doceup.emails-autorizados", () -> "teste@example.com");
     }
 
     @BeforeEach
@@ -141,6 +142,21 @@ class FluxoDoceUpTest {
     @Test
     void exigeSessaoCsrfEIsolaVinculosEntreContas() throws Exception {
         mvc.perform(get(API + "/produtos")).andExpect(status().isUnauthorized());
+        var idTokenNaoAutorizado = new OidcIdToken("test", NOVEMBRO, DEZEMBRO,
+                Map.of("sub", "outra-conta", "iss", "https://accounts.google.com",
+                        "email", "outra@example.com", "email_verified", true));
+        var naoAutorizada = new DefaultOidcUser(java.util.List.of(new SimpleGrantedAuthority("OIDC_USER")),
+                idTokenNaoAutorizado);
+        mvc.perform(get(API + "/produtos").with(oidcLogin().oidcUser(naoAutorizada)))
+                .andExpect(status().isForbidden());
+        var idTokenNaoVerificado = new OidcIdToken("test", NOVEMBRO, DEZEMBRO,
+                Map.of("sub", "nao-verificado", "iss", "https://accounts.google.com",
+                        "email", "teste@example.com", "email_verified", false));
+        var naoVerificada = new DefaultOidcUser(java.util.List.of(new SimpleGrantedAuthority("OIDC_USER")),
+                idTokenNaoVerificado);
+        mvc.perform(get(API + "/produtos").with(oidcLogin().oidcUser(naoVerificada)))
+                .andExpect(status().isForbidden());
+        assertThat(new br.com.doceup.security.AcessoPrivado("").permite(dona)).isFalse();
         mvc.perform(post(API + "/produtos").with(oidcLogin().oidcUser(dona)))
                 .andExpect(status().isForbidden());
 
@@ -385,7 +401,8 @@ class FluxoDoceUpTest {
 
     private OidcUser identidadeFicticia() {
         var token = new OidcIdToken("test", NOVEMBRO, DEZEMBRO,
-                Map.of("sub", UUID.randomUUID().toString(), "iss", "https://accounts.google.com"));
+                Map.of("sub", UUID.randomUUID().toString(), "iss", "https://accounts.google.com",
+                        "email", "teste@example.com", "email_verified", true));
         return new DefaultOidcUser(java.util.List.of(new SimpleGrantedAuthority("OIDC_USER")), token);
     }
 

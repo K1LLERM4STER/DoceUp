@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,14 +24,18 @@ class SecurityConfig {
     private static final Logger LOG = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Bean
-    SecurityFilterChain rotas(HttpSecurity http, ContaAtual conta, Problemas problemas) {
+    SecurityFilterChain rotas(HttpSecurity http, ContaAtual conta, Problemas problemas, AcessoPrivado acesso) {
         var api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");
         var login = new LoginUrlAuthenticationEntryPoint("/login");
         http
             .authorizeHttpRequests(rotas -> rotas
                 .requestMatchers("/login", "/oauth2/authorization/google", "/login/oauth2/code/google",
                         "/assets/**", "/favicon.ico", "/favicon.svg", "/actuator/health").permitAll()
-                .anyRequest().authenticated())
+                .anyRequest().access((authentication, context) -> {
+                    var auth = authentication.get();
+                    return new AuthorizationDecision(auth != null && auth.isAuthenticated()
+                            && acesso.permite(auth.getPrincipal()));
+                }))
             .exceptionHandling(erros -> erros
                 .authenticationEntryPoint((req, res, erro) -> {
                     if (api.matches(req)) {
@@ -52,6 +57,13 @@ class SecurityConfig {
             .oauth2Login(oauth -> oauth.loginPage("/login")
                 .successHandler((req, res, auth) -> {
                     try {
+                        if (!acesso.permite(auth.getPrincipal())) {
+                            SecurityContextHolder.clearContext();
+                            var sessao = req.getSession(false);
+                            if (sessao != null) sessao.invalidate();
+                            res.sendRedirect(req.getContextPath() + "/login?erro=1");
+                            return;
+                        }
                         conta.cadastrarSeNecessario((OidcUser) auth.getPrincipal());
                         res.sendRedirect(req.getContextPath() + "/login");
                     } catch (RuntimeException erro) {
